@@ -5,13 +5,22 @@
 // resetting the clock on an arbitrary attribute
 
 
+// when there's multiple presence sensors for the same location
+// treat them like a group, send when one is activated, not when each
 if (msg.payload.event == 'activated') {
-    flow.set(msg.payload.location, 'flag');
-    node.status({fill:"yellow",shape:"dot",text:" " });
-    return msg;
+    var flag = flow.get(msg.payload.location);
+    if (flag === undefined) {
+        flow.set(msg.payload.location, 'flag');
+        node.status({fill:"yellow",shape:"dot",text:" " });
+        return msg;
+    }
 }
 
 if (msg.payload.event == 'deactivated') {
+    // if undefined, we've already due to set the close message
+    var flag = flow.get(msg.payload.location);
+    if (flag === undefined) { return null }
+    
     flow.set(msg.payload.location, undefined);
     node.status({fill:"blue",shape:"dot",text:" " });
     setTimeout(function(){
