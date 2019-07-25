@@ -7,25 +7,40 @@
 
 // when there's multiple presence sensors for the same location
 // treat them like a group, send when one is activated, not when each
-if (msg.payload.event == 'activated') {
-    flow.set(msg.payload.location, 'flag');
-    node.status({fill:"yellow",shape:"dot",text: msg.payload.location });
+if (msg.payload.event == 'activated') 
+{
+    var flag = flow.get(msg.payload.location);
+    if (flag === undefined) 
+    { 
+        flag = 1;
+    }
+    else 
+    { 
+        flag++;
+    }
+    flow.set(msg.payload.location, flag);
+    node.status({fill:"yellow",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
     return msg;
 }
 
 if (msg.payload.event == 'deactivated') {
-    // if undefined, we're not waiting on a deactivate message
     var flag = flow.get(msg.payload.location);
-    if (flag === undefined) { return null }
+    if (flag === undefined || flag <= 0) { return null }
+    node.status({fill:"blue",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
     
-    flow.set(msg.payload.location, undefined);
-    node.status({fill:"blue",shape:"dot",text: msg.payload.location });
     setTimeout(function(){
         var flag = flow.get(msg.payload.location);
-        if (flag === undefined) {
+        flag--;
+        if (flag === undefined || flag <= 0)
+        {
             node.status({fill:"black",shape:"dot",text: msg.payload.location });
             node.send(msg);
         }
+        else 
+        {
+            node.status({fill:"blue",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
+        }
+        flow.set(msg.payload.location, flag);
     }, 30000);
 }
 return null;
