@@ -4,43 +4,36 @@
 // this isn't just implemented with a in-built trigger because it doesn't 
 // support resetting the clock on an arbitrary attribute
 
+const WAIT_TIME = 30000;  // 30 seconds
+
+function can_deactivate(){
+    var last_activation = flow.get(msg.payload.location);
+    if (last_activation === undefined) { return null }
+    var waited = Date.now() - last_activation;
+    
+    if (waited >= WAIT_TIME)
+    {
+        node.status({fill:"black",shape:"dot",text: msg.payload.location });
+        node.send(msg);
+    }
+    else { return null }
+}
+
 
 // when there's multiple presence sensors for the same location
 // treat them like a group, send when one is activated, not when each
 if (msg.payload.event == 'activated') 
 {
-    var flag = flow.get(msg.payload.location);
-    if (flag === undefined) 
-    { 
-        flag = 1;
-    }
-    else 
-    { 
-        flag++;
-    }
-    flow.set(msg.payload.location, flag);
-    node.status({fill:"yellow",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
+    flow.set(msg.payload.location, Date.now());
+    node.status({fill:"yellow",shape:"dot",text: msg.payload.location });
     return msg;
 }
 
 if (msg.payload.event == 'deactivated') {
-    var flag = flow.get(msg.payload.location);
-    if (flag === undefined || flag <= 0) { return null }
-    node.status({fill:"blue",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
-    
-    setTimeout(function(){
-        var flag = flow.get(msg.payload.location);
-        flag--;
-        if (flag === undefined || flag <= 0)
-        {
-            node.status({fill:"black",shape:"dot",text: msg.payload.location });
-            node.send(msg);
-        }
-        else 
-        {
-            node.status({fill:"blue",shape:"dot",text: msg.payload.location + ' [' + flag + ']' });
-        }
-        flow.set(msg.payload.location, flag);
-    }, 30000);
+    var last_activation = flow.get(msg.payload.location);
+    if (last_activation === undefined) { return null }
+    node.status({fill:"blue",shape:"dot",text: msg.payload.location });
+    setTimeout(can_deactivate, WAIT_TIME);
 }
+
 return null;
